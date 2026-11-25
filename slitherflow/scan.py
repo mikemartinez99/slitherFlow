@@ -9,8 +9,8 @@ rule, whatever the config. The price is that file paths have to be worked out wi
 - `input:` and `output:` are parsed as Python, and each value is reduced to the path patterns it could produce.
   Variables (all of their assignments, on every branch, and `+=`), `expand()`, f-strings, `temp()`-style
   wrappers, `multiext()`, `os.path.join()`, simple helper functions (`def f(): return f"..."`) and
-  `rules.<name>.output` references are followed. Anything that depends on the config or the sample sheet
-  becomes "could be anything", like a wildcard;
+  `rules.<name>.output` / `rules.<name>.input` references are followed. Anything that depends on the config or
+  the sample sheet becomes "could be anything", like a wildcard;
 - an input is joined to every rule whose output (or log / benchmark file) pattern could name the same file.
   Like most Snakemake workflows, wildcards are assumed not to span folders ({sample} never contains a /).
 
@@ -294,6 +294,12 @@ class Project:
             ref = rule_reference(node)
             if ref:
                 return {("rule", ref)}
+            ref = rule_input_reference(node)
+            if ref:                                   # rules.x.input: whatever rule x reads
+                key = ("rules", ref, "input")
+                if ref not in self.rules or key in stack:
+                    return set()
+                return set().union(*(self.values(e, {}, stack + (key,)) for e in self.rules[ref]["input"]))
         if isinstance(node, ast.Subscript):
             return self.values(node.value, env, stack)
         if isinstance(node, ast.Call):
@@ -401,6 +407,23 @@ class Project:
 
 def rule_reference(node):
     """'x' for rules.x.output..., checkpoints.x.get(...).output..., else None."""
+    parts = reference_parts(node)
+    if parts and len(parts) >= 3 and parts[0] in ("rules", "checkpoints") and "output" in parts[2:]:
+        return parts[1]
+    return None
+
+
+def rule_input_reference(node):
+    """'x' for rules.x.input... (a target rule that gathers another rule's inputs, e.g. `rule all: input:
+    rules.figures.input`), else None."""
+    parts = reference_parts(node)
+    if parts and len(parts) >= 3 and parts[0] == "rules" and parts[2] == "input":
+        return parts[1]
+    return None
+
+
+def reference_parts(node):
+    """['rules', 'x', 'output', ...] for an attribute chain like rules.x.output[0] or rules.x.output.y, else None."""
     parts = []
     while True:
         if isinstance(node, ast.Attribute):
@@ -416,9 +439,7 @@ def rule_reference(node):
         else:
             return None
     parts.reverse()
-    if len(parts) >= 3 and parts[0] in ("rules", "checkpoints") and "output" in parts[2:]:
-        return parts[1]
-    return None
+    return parts
 
 
 WILDCARD = re.compile(r"\{[^{}]*(\{[^{}]*\}[^{}]*)*\}")      # {sample} or {sample,[a-z]{2}}
@@ -528,7 +549,12 @@ def rulegraph_from_files(project, min_literal=3):
                 if bb == b and a not in keep:
                     keep.add(a)
                     todo.append(a)
-    ids = {r: k for k, r in enumerate(r for r in names if r in keep)}
+        found, kept = len(names) - 1, len(keep) - 1
+        if found >= 8 and kept < found / 4:
+            print(f"warning: only {kept} of the {found} rules found lead to `rule all`, so the map leaves most of the "
+                  "pipeline out. If that's wrong, `rule all` may build its inputs in a way --scan can't follow; "
+                  "compare with `snakemake --rulegraph`.", file=sys.stderr)
+    ids ={r: k for k, r in enumerate(r for r in names if r in keep)}
     conditional = proj.conditional_rules() - {"all"}
     out = ["digraph snakemake_dag {"]
     out += [f'\t{i}[label = "{r}"{", optional = true" if r in conditional else ""}];' for r, i in ids.items()]

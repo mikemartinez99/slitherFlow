@@ -197,6 +197,36 @@ def test_expand_keeps_unknown_keywords_and_escapes_as_wildcards(tmp_path):
     assert edges == {("count_genes", "all"), ("merge", "all"), ("align_a", "merge"), ("align_b", "merge")}
 
 
+def test_rules_input_reference_is_followed(tmp_path):
+    """Issue: `rule all: input: rules.reports.input` (a target rule gathering another target rule's inputs) was
+    not followed, so everything behind it was dropped as "not leading to rule all"."""
+    (tmp_path / "Snakefile").write_text(
+        'rule make:\n    output: "results/{x}.txt"\n    shell: "touch {output}"\n\n'
+        'rule reports:\n    input:\n        "results/a.txt",\n        "results/b.txt",\n\n'
+        'rule all:\n    default_target: True\n    input:\n        rules.reports.input,\n', encoding="utf-8")
+    assert scanned_edges(tmp_path) == ({"all", "make"}, {("make", "all")})
+
+
+def test_rules_input_reference_chains_and_loops(tmp_path):
+    """rules.x.input can point at a rule whose inputs are themselves rules.y.input or rules.z.output; a pair of
+    rules referring to each other's inputs must not recurse forever."""
+    (tmp_path / "Snakefile").write_text(
+        'rule fit:\n    output: "fit/model.pkl"\n    shell: "x"\n'
+        'rule plot:\n    output: "figs/plot.pdf"\n    shell: "x"\n'
+        'rule figures:\n    input: "figs/plot.pdf", rules.models.input\n'
+        'rule models:\n    input: rules.fit.output, rules.figures.input\n'
+        'rule all:\n    default_target: True\n    input: rules.figures.input\n', encoding="utf-8")
+    assert scanned_edges(tmp_path) == ({"all", "fit", "plot"}, {("fit", "all"), ("plot", "all")})
+
+
+def test_warns_when_few_rules_lead_to_all(tmp_path, capsys):
+    """A near-empty map is easy to mistake for a result: say how many rules were found but left out."""
+    rules = "".join(f'rule r{k}:\n    output: "out/r{k}.txt"\n    shell: "x"\n' for k in range(9))
+    (tmp_path / "Snakefile").write_text('rule all:\n    input: "out/r0.txt"\n' + rules, encoding="utf-8")
+    rulegraph_from_files(tmp_path)
+    assert "only 1 of the 9 rules found lead to `rule all`" in capsys.readouterr().err
+    rulegraph_from_files(PROJECT)
+    assert "warning" not in capsys.readouterr().err
 BACKEND = DATA / "backend_project"
 # `snakemake --rulegraph` for backend_project's config (backends: ["default"]): validate and fast_correction
 # are defined, but only used for the "reference" and "fast" backends
