@@ -23,3 +23,4 @@ slitherFlow was inspired by [nf-metro](https://github.com/pinin4fjords/nf-metro)
 ## Thank you to our contributors
 
 - [Bryn Pickering](https://github.com/brynpickering), for pixi packaging and cross-platform CI ([#2](https://github.com/mikemartinez99/slitherFlow/pull/2))
+- [Yassine Abdelouadoud](https://github.com/YassineAbdelouadoud), for handling rule-graph loops ([#10](https://github.com/mikemartinez99/slitherFlow/pull/10)) and following `rules.<name>.input` in `--scan` ([#11](https://github.com/mikemartinez99/slitherFlow/pull/11))
