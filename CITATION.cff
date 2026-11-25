@@ -9,7 +9,7 @@ abstract: >-
 authors:
   - family-names: Martinez
     given-names: Mike
-version: 1.0.0
+version: 1.1.0
 license: MIT
 repository-code: "https://github.com/mikemartinez99/slitherFlow"
 url: "https://mikemartinez99.github.io/slitherFlow/"

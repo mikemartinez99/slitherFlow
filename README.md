@@ -2,7 +2,7 @@
 
 **Subway maps for Snakemake pipelines.**
 
-![Version 1.0](https://img.shields.io/badge/version-1.0-009E73)
+![Version 1.1](https://img.shields.io/badge/version-1.1-009E73)
 [![Pixi](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/prefix-dev/pixi/main/assets/badge/v0.json)](https://pixi.sh)
 [![tests](https://github.com/mikemartinez99/slitherFlow/actions/workflows/tests.yml/badge.svg)](https://github.com/mikemartinez99/slitherFlow/actions/workflows/tests.yml)
 [![docs](https://img.shields.io/badge/docs-online-0072B2)](https://mikemartinez99.github.io/slitherFlow/)
@@ -88,7 +88,7 @@ See [Development](https://mikemartinez99.github.io/slitherFlow/development/) for
 
 If you use slitherFlow in your work, please cite it:
 
-> Martinez, M. (2026). *slitherFlow: subway maps for Snakemake pipelines* (Version 1.0.0) [Computer software]. https://github.com/mikemartinez99/slitherFlow
+> Martinez, M. (2026). *slitherFlow: subway maps for Snakemake pipelines* (Version 1.1.0) [Computer software]. https://github.com/mikemartinez99/slitherFlow
 
 ## Acknowledgements
 
@@ -97,6 +97,7 @@ slitherFlow was inspired by [nf-metro](https://github.com/pinin4fjords/nf-metro)
 ## Thank you to our contributors
 
 - [Bryn Pickering](https://github.com/brynpickering), for pixi packaging and cross-platform CI ([#2](https://github.com/mikemartinez99/slitherFlow/pull/2))
+- [Yassine Abdelouadoud](https://github.com/YassineAbdelouadoud), for handling rule-graph loops ([#10](https://github.com/mikemartinez99/slitherFlow/pull/10)) and following `rules.<name>.input` in `--scan` ([#11](https://github.com/mikemartinez99/slitherFlow/pull/11))
 
 ## A note on AI
 

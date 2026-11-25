@@ -52,6 +52,15 @@ This also runs `snakemake --rulegraph` (with any Snakemake arguments after `--`)
 !!! warning "Best effort"
     Paths built from the sample sheet at run time, or rules imported with `use rule ... from`, can't always be followed. If a connection is missing, compare with `snakemake --rulegraph`, or add it yourself with [`feeds`](guide/customizing.md#connect-lines-together).
 
+### If the scanned map is nearly empty
+
+`--scan` only keeps rules that lead to `rule all`. If `rule all` builds its list of targets in a way the scan can't follow, such as a function imported from another module (`input: final_targets(config)`), most or all of the pipeline drops out. slitherFlow warns you when that happens:
+
+- **"none of the N rules found lead to `rule all`, so there is nothing to draw"**: nothing connects to `rule all` at all. The draft then stops with "the rule graph has no source rule".
+- **"only K of the N rules found lead to `rule all`"**: on a pipeline with 8 or more rules, fewer than a quarter of them made it onto the map.
+
+Either way, compare with the default mode (`slitherflow auto /path/to/my-pipeline`), which asks Snakemake for the rule graph and so sees the real targets. If Snakemake can't run there, save its graph somewhere it can (`snakemake --rulegraph > rulegraph.dot`) and pass it with `--rulegraph rulegraph.dot`.
+
 ## Try it on the bundled example
 
 The repository includes a saved rule graph from the GDSC miRNA-seq pipeline, so you can try slitherFlow without Snakemake or the pipeline itself. Download it and draw the map:
