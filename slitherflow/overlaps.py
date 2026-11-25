@@ -36,6 +36,8 @@ def check_overlaps(cv):
             if any(b1[0] - half < x < b1[2] + half and b1[1] - half < y < b1[3] + half for x, y in sample(pts)):
                 found.append(f"{d1} sits on line '{lid}'")
     for b1, members, d1 in cv.stations:
+        if not members and d1 == cv.terminus:        # a lone trunk station needs no lines
+            found.append(f"{d1} has no lines going into it (give a line `to: terminus`)")
         for pts, lid in cv.lines:
             if lid in members:
                 continue

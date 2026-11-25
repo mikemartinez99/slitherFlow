@@ -36,6 +36,14 @@ slitherflow draft GDSC-miRNAseq-analysis-pipeline --rulegraph examples/mirnaseq/
 slitherflow render examples/mirnaseq/mirnaseq_draft.yaml --png --pdf
 ```
 
+The palette previews in [Customizing your map](guide/customizing.md#change-colours) are the CUT&RUN draft in each palette. Rebuild them with one command per palette:
+
+```shell
+for p in okabe-ito tol-bright tol-vibrant tol-muted ibm tab10; do
+  slitherflow render examples/cutrun/cutrun_draft.yaml -o examples/palettes/$p.svg --palette $p --png
+done
+```
+
 `examples/mirnaseq/rulegraph_scan.dot` is the graph `--scan` found for the miRNA-seq pipeline, which the finished map started from. Pass it to `--rulegraph` the same way to see that draft.
 
 When you use `--rulegraph`, the project name is only used for the map's title.

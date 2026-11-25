@@ -50,7 +50,7 @@ The code lives in the `slitherflow/` package, one file per job:
 | `render.py` | Lays out a spec and draws it as SVG |
 | `canvas.py` | SVG drawing helpers, which also record what was drawn where |
 | `overlaps.py` | The overlap check |
-| `style.py` | Colours, sizes and spacing |
+| `style.py` | Colour palettes, sizes and spacing |
 
 ## A note on AI
 

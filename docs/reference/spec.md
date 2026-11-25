@@ -52,11 +52,12 @@ footnote: "One line of explanation under the legend."
 | Key | Meaning |
 |---|---|
 | `title`, `subtitle` | Text at the top of the map |
-| `input` | The start of the map: `{label, sublabel, file}` |
-| `trunk` | The shared steps every sample goes through (see [below](#trunk)) |
+| `input` | The start of the map: `{label, sublabel, file}`. `file` is the text on the input icon, such as `"FASTQ"`, `"CSV"` or `"NC"` (default `"IN"`) |
+| `trunk` | The shared steps every run goes through (see [below](#trunk)) |
 | `lines` | **Required.** A mapping of line ID → line (see [below](#lines)) |
 | `terminus` | The end station (see [below](#terminus)) |
 | `footnote` | One line of explanation under the legend |
+| `palette` | Line colours: a palette name such as `tol-bright`, or a list of colours (see [below](#colour-palettes)) |
 | `style` | Overrides for the default look (see [below](#style)) |
 
 ## Trunk
@@ -74,7 +75,7 @@ footnote: "One line of explanation under the legend."
 | Key | Meaning |
 |---|---|
 | `name` | The name shown in the legend (defaults to the line ID) |
-| `color` | Line colour (defaults to the next [palette](#default-colours) colour) |
+| `color` | Line colour (defaults to the next [palette](#colour-palettes) colour) |
 | `row` | Vertical position. Negative is above the trunk, positive below, and fractions are fine |
 | `optional: true` | Draw the line dashed, and add "(optional)" to its legend entry |
 | `from` | Where the line starts: a trunk station's name, `input`, or `{line, station}` to make it a branch |
@@ -119,15 +120,29 @@ Anything under `style` overrides these defaults:
 | `dash` | `16 9` | Dash pattern for optional lines |
 | `margin` | `48` | Space around the map |
 
-## Default colours
+## Colour palettes
 
-Lines are coloured in this order, from the colour-blind-friendly Okabe-Ito palette:
+Lines without their own `color` take the palette's colours in order, starting again from the first if there are more lines than colours. Branches share their parent line's colour. Pick a palette by name:
 
-<span style="color:#009E73">■</span> `#009E73`
-<span style="color:#E69F00">■</span> `#E69F00`
-<span style="color:#CC79A7">■</span> `#CC79A7`
-<span style="color:#D55E00">■</span> `#D55E00`
-<span style="color:#56B4E9">■</span> `#56B4E9`
-<span style="color:#0072B2">■</span> `#0072B2`
-<span style="color:#F0E442">■</span> `#F0E442`
-<span style="color:#000000">■</span> `#000000`
+```yaml
+palette: tol-bright
+```
+
+| Name | Colours | Notes |
+|---|---|---|
+| `okabe-ito` | <span style="color:#009E73">■</span> <span style="color:#E69F00">■</span> <span style="color:#CC79A7">■</span> <span style="color:#D55E00">■</span> <span style="color:#56B4E9">■</span> <span style="color:#0072B2">■</span> <span style="color:#F0E442">■</span> <span style="color:#000000">■</span> | **Default.** Colour-blind safe ([Okabe & Ito](https://jfly.uni-koeln.de/color/)) |
+| `tol-bright` | <span style="color:#4477AA">■</span> <span style="color:#EE6677">■</span> <span style="color:#228833">■</span> <span style="color:#CCBB44">■</span> <span style="color:#66CCEE">■</span> <span style="color:#AA3377">■</span> <span style="color:#BBBBBB">■</span> | Colour-blind safe ([Paul Tol](https://personal.sron.nl/~pault/)) |
+| `tol-vibrant` | <span style="color:#0077BB">■</span> <span style="color:#EE7733">■</span> <span style="color:#009988">■</span> <span style="color:#CC3311">■</span> <span style="color:#33BBEE">■</span> <span style="color:#EE3377">■</span> <span style="color:#BBBBBB">■</span> | Colour-blind safe ([Paul Tol](https://personal.sron.nl/~pault/)) |
+| `tol-muted` | <span style="color:#332288">■</span> <span style="color:#88CCEE">■</span> <span style="color:#44AA99">■</span> <span style="color:#117733">■</span> <span style="color:#999933">■</span> <span style="color:#DDCC77">■</span> <span style="color:#CC6677">■</span> <span style="color:#882255">■</span> <span style="color:#AA4499">■</span> | Colour-blind safe ([Paul Tol](https://personal.sron.nl/~pault/)); softer, with nine colours |
+| `ibm` | <span style="color:#648FFF">■</span> <span style="color:#DC267F">■</span> <span style="color:#FE6100">■</span> <span style="color:#785EF0">■</span> <span style="color:#FFB000">■</span> | Colour-blind safe (IBM Design Library). Only five colours, so on a map with more lines some share a colour |
+| `tab10` | <span style="color:#1F77B4">■</span> <span style="color:#FF7F0E">■</span> <span style="color:#2CA02C">■</span> <span style="color:#D62728">■</span> <span style="color:#9467BD">■</span> <span style="color:#8C564B">■</span> <span style="color:#E377C2">■</span> <span style="color:#7F7F7F">■</span> <span style="color:#BCBD22">■</span> <span style="color:#17BECF">■</span> | matplotlib's default colours. Familiar, but **not** colour-blind safe |
+
+To see each one on a real map, look at the [palette previews](../guide/customizing.md#change-colours).
+
+Or give your own colours, in the order lines should use them:
+
+```yaml
+palette: ["#1b9e77", "#d95f02", "#7570b3"]
+```
+
+`slitherflow render --palette NAME` (and `auto`/`draft --palette NAME`) picks a named palette from the command line. On `render` it overrides the spec's `palette:` without changing the file.

@@ -2,6 +2,8 @@
 import re
 import sys
 
+from .style import DEFAULT_PALETTE, PALETTES
+
 
 def pretty(rule):
     words = rule.replace("-", "_").split("_")
@@ -30,12 +32,52 @@ def find_terminus(succ, pred):
     return max(sinks, key=lambda i: (len(pred[i]), len(ancestors(i)), -order[i]))
 
 
-def spec_from_rulegraph(dot_text, title="My pipeline"):
-    names, edges = {}, []
+def drop_loops(succ, pred):
+    """Remove the connections that close a loop, so the rest of the graph can be laid out left to right.
+
+    A rule graph can loop even though Snakemake's job graph can't: a rule whose job for one wildcard value reads
+    the output of the same rule for another value (warm starts, parent and child scenarios) shows up as
+    `run -> run`, or as `run -> scenario -> run` through other rules. Walking forward from the source rules,
+    a connection back to a rule that is still on the path being walked closes a loop and is dropped. Loops no
+    source leads to (e.g. two rules that only feed each other, when `--scan` can't see what else feeds them) are
+    then walked from their first rule in the graph. Returns the dropped (from, to) pairs."""
+    dropped = []
+    state = {}                                          # 1 = on the current path, 2 = done
+    for src in [i for i in succ if not pred[i]] + list(succ):
+        if src in state:
+            continue
+        state[src] = 1
+        stack = [(src, iter(list(succ[src])))]
+        while stack:
+            i, children = stack[-1]
+            j = next(children, None)
+            if j is None:
+                state[i] = 2
+                stack.pop()
+            elif state.get(j) == 1:
+                dropped.append((i, j))
+            elif j not in state:
+                state[j] = 1
+                stack.append((j, iter(list(succ[j]))))
+    for a, b in dropped:
+        succ[a].remove(b)
+        pred[b].remove(a)
+    return dropped
+
+
+def spec_from_rulegraph(dot_text, title="My pipeline", palette=DEFAULT_PALETTE):
+    """A starter spec (YAML text) from a rule graph in `snakemake --rulegraph` (DOT) form.
+
+    Lines and stations are marked optional only when the graph says so: `--scan` adds `optional = true` to the
+    rules it finds defined under an `if` (or in a file only included under one). A plain `snakemake --rulegraph`
+    only holds rules the current config runs, so nothing in it is marked optional."""
+    names, edges, conditional = {}, [], set()
     for line in dot_text.splitlines():
-        m = re.match(r'\s*(\d+)\s*\[\s*label\s*=\s*"([^"]+)"', line)
+        m = re.match(r'\s*(\d+)\s*\[\s*label\s*=\s*"([^"]+)"(.*)', line)
         if m:
             names[m.group(1)] = m.group(2)
+            if re.search(r'\boptional\s*=\s*"?true\b', m.group(3)):
+                conditional.add(m.group(1))
             continue
         m = re.match(r"\s*(\d+)\s*->\s*(\d+)", line)
         if m:
@@ -45,10 +87,15 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
     rules = {i: n for i, n in names.items() if n != "all"}
     succ = {i: [] for i in rules}
     pred = {i: [] for i in rules}
+    loops = []
     for a, b in edges:
-        if a in rules and b in rules and b not in succ[a]:
+        if a == b and a in rules:
+            if (a, b) not in loops:
+                loops.append((a, b))            # a rule feeding itself (for another wildcard value)
+        elif a in rules and b in rules and b not in succ[a]:
             succ[a].append(b)
             pred[b].append(a)
+    loops += drop_loops(succ, pred)
     term = find_terminus(succ, pred)
     feeds_term = set(pred[term]) if term else set()
     nodes = [i for i in rules if i != term]
@@ -140,7 +187,7 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
             lid = f"side{len(lines) + 1}"
             for i in c:
                 assigned[i] = (lid, None)
-            lines[lid] = {"name": pretty(rules[c[0]]), "from": pretty(rules[t]), "optional": True, "_chain": c,
+            lines[lid] = {"name": pretty(rules[c[0]]), "from": pretty(rules[t]), "_chain": c,
                           "_start": depth[t], "_origin": t}
     for src in sources:
         if src in assigned:
@@ -149,7 +196,7 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
         lid = f"side{len(lines) + 1}"
         for i in c:
             assigned[i] = (lid, None)
-        lines[lid] = {"name": pretty(rules[c[0]]), "from": "input", "optional": True, "_chain": c, "_start": -1, "_origin": None}
+        lines[lid] = {"name": pretty(rules[c[0]]), "from": "input", "_chain": c, "_start": -1, "_origin": None}
     # every rule still unplaced branches off the station of its latest placed input
     for j in order:
         if j in assigned:
@@ -164,6 +211,23 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
         par = assigned[p][0]
         frm = pretty(rules[p]) if par == "trunk" else {"line": par, "station": pretty(rules[p])}
         lines[lid] = {"name": pretty(rules[c[0]]), "from": frm, "_chain": c, "_start": depth[p], "_origin": p}
+    # Only a line whose last rule feeds the terminus is drawn into it. If none does (every terminus input sits
+    # partway along a line that carries on), the terminus would be drawn with nothing going in: cut the line with
+    # the most terminus inputs after its last one, and the rest of it becomes a branch leaving that station.
+    if term and not any(ln["_chain"][-1] in feeds_term for ln in lines.values()):
+        fed = [(sum(i in feeds_term for i in ln["_chain"]), lid) for lid, ln in lines.items()]
+        n, cut_lid = max(fed, key=lambda f: f[0], default=(0, None))
+        if n:
+            ln = lines[cut_lid]
+            k = max(k for k, i in enumerate(ln["_chain"]) if i in feeds_term)
+            stop, rest = ln["_chain"][k], ln["_chain"][k + 1:]
+            ln["_chain"] = ln["_chain"][:k + 1]
+            lid = f"branch{len(lines) + 1}"
+            for i in rest:
+                assigned[i] = (lid, None)
+            par = assigned[stop][0]
+            lines[lid] = {"name": pretty(rules[rest[0]]), "from": {"line": par, "station": pretty(rules[stop])},
+                          "_chain": rest, "_start": depth[stop], "_origin": stop}
     end_depth = max(depth.values(), default=0) + 1
     for lid, ln in lines.items():
         ln["to"] = to = tail_target(ln["_chain"], lid)
@@ -252,6 +316,9 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
         occupied.append((ln["row"], a, b, joins(ln)))
         sides.setdefault(src, 1 if ln["row"] > pr else -1)
     unplaced = [rules[i] for i in nodes if i not in assigned]
+    # a line is optional when every rule on it is; other optional rules become optional stations
+    for ln in lines.values():
+        ln["optional"] = all(i in conditional for i in ln["_chain"])
 
     # ---- write YAML with comments ----
     q = lambda v: '"' + str(v).replace('"', '\\"') + '"'
@@ -261,14 +328,16 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
            "",
            f'title: {q(title)}',
            'subtitle: "v1.0  ·  Snakemake"',
-           'input: {label: "Input", sublabel: "", file: "FASTQ"}',
+           f"palette: {palette}" + " " * max(1, 22 - len(palette))
+           + f"# line colours: {', '.join(PALETTES)}, or a list of colours",
+           'input: {label: "Input", sublabel: "", file: "IN"}   # file: text on the input icon, e.g. "FASTQ", "CSV", "NC"',
            "",
-           "trunk:                      # steps every sample goes through",
+           "trunk:                      # steps every run goes through",
            "  stations:"]
     ref = lambda v: q(v) if isinstance(v, str) else "{line: " + v["line"] + ", station: " + q(v["station"]) + "}"
 
-    def station(i):
-        extra = ""
+    def station(i, on_optional_line=False):
+        extra = ", optional: true" if i in conditional and not on_optional_line else ""
         if feeds.get(i):
             extra = ", feeds: [" + ", ".join(ref({"line": assigned[j][0], "station": pretty(rules[j])})
                                              for j in feeds[i]) + "]"
@@ -277,7 +346,7 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
     out += [f"    - {station(i)}" for i in trunk]
     trunk_ids = sorted((l for l, v in lines.items() if "from" not in v), key=lambda l: lines[l]["row"])
     out += ["  lines: [" + ", ".join(trunk_ids) + "]   # top -> bottom on the trunk",
-            "", "lines:"]
+            "", "lines:" if lines else "lines: {}"]
     for lid, ln in lines.items():
         branch = isinstance(ln.get("from"), dict)
         if branch:   # no name: it shares its parent's colour and legend entry
@@ -288,11 +357,16 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
         if "from" in ln:
             out.append(f"    from: {ref(ln['from'])}")
         out.append(f"    row: {ln['row']}" + ("            # negative = above the trunk" if ln['row'] < 0 else ""))
-        if ln.get("optional"):
-            out.append("    optional: true         # dashed; delete if the step always runs")
+        parent_optional = branch and lines[ln["from"]["line"]]["optional"]
+        if ln["optional"] and not parent_optional:
+            out.append("    optional: true         # dashed: these steps only run for some configs")
+        elif not ln["optional"] and parent_optional:
+            out.append("    optional: false        # its parent line is optional, but these steps always run")
+        elif not ln["optional"] and "from" in ln and not branch:
+            out.append("    # optional: true       # uncomment to draw it dashed, if these steps only run for some configs")
         out.append(f"    to: {ref(ln['to'])}")
         out.append("    stations:")
-        out += [f"      - {station(i)}" for i in ln["_chain"]]
+        out += [f"      - {station(i, ln['optional'])}" for i in ln["_chain"]]
     if term:
         feeding = [ln["row"] for ln in lines.values() if ln["to"] == "terminus" and "from" not in ln]
         trow = min(feeding, key=abs) if feeding else 0
@@ -303,4 +377,8 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
     out += ["", 'footnote: ""']
     if unplaced:
         out += ["", "# Rules not placed automatically (add them to a line by hand):"] + [f"#   - {r}" for r in unplaced]
+    if loops:
+        out += ["", "# Connections left out because they loop back (a rule feeding itself or an earlier rule,"
+                    " for another", "# wildcard value):"]
+        out += [f"#   - {rules[a]} -> {rules[b]}" for a, b in loops]
     return "\n".join(out) + "\n"

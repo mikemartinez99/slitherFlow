@@ -59,7 +59,7 @@ No pixi? See [Installation](installation.md) for installing with pip.
 
 - **[Installation](installation.md)**: install slitherFlow and the optional tools it uses.
 - **[Quick start](quickstart.md)**: draw your first map, or try the bundled example.
-- **[Customizing your map](guide/customizing.md)**: rename steps, add tools and outputs, connect lines.
+- **[Customizing your map](guide/customizing.md)**: rename steps, add tools and outputs, connect lines, change colours.
 - **[Spec reference](reference/spec.md)**: every option the YAML file accepts.
 - **[Citing slitherFlow](citing.md)**: how to cite it, and who helped build it.
 

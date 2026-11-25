@@ -4,9 +4,10 @@
 
 title: "GDSC-miRNAseq-analysis-pipeline"
 subtitle: "v1.0  ·  Snakemake"
-input: {label: "Input", sublabel: "", file: "FASTQ"}
+palette: okabe-ito             # line colours: okabe-ito, tol-bright, tol-vibrant, tol-muted, ibm, tab10, or a list of colours
+input: {label: "Input", sublabel: "", file: "IN"}   # file: text on the input icon, e.g. "FASTQ", "CSV", "NC"
 
-trunk:                      # steps every sample goes through
+trunk:                      # steps every run goes through
   stations:
     - {name: "Trimming", tool: ""}
   lines: [line1, line3, line2]   # top -> bottom on the trunk
@@ -41,7 +42,7 @@ lines:
     name: "Make fastqc config"
     from: "input"
     row: 1.6
-    optional: true         # dashed; delete if the step always runs
+    # optional: true       # uncomment to draw it dashed, if these steps only run for some configs
     to: "none"
     stations:
       - {name: "Make fastqc config", tool: ""}

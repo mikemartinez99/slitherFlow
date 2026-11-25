@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1784 970" width="1784" height="970">
+<rect width="1784" height="970" fill="#ffffff"/>
+<text x="48.0" y="56.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#1f2328" text-anchor="start">GDSC-CUT-RUN-pipeline</text>
+<text x="48.0" y="84.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#59636e" text-anchor="start">v1.0  ·  Snakemake</text>
+<path d="M248.0,453.0 L248.0,736.0 Q248.0,758.0 270.0,758.0 L1609.3,758.0 Q1631.3,758.0 1631.3,736.0 L1631.3,446.0" fill="none" stroke="#AA3377" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M86.0,454.0 L86.0,801.0 Q86.0,823.0 108.0,823.0 L1621.3,823.0 Q1643.3,823.0 1643.3,801.0 L1643.3,446.0" fill="none" stroke="#BBBBBB" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112.0,440.0 L621.6,440.0 Q643.6,440.0 659.2,455.6 L868.0,664.4 Q883.6,680.0 905.6,680.0 L959.3,680.0" fill="none" stroke="#66CCEE" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112.0,430.0 L621.6,430.0 Q643.6,430.0 659.2,445.6 L748.0,534.4 Q763.6,550.0 785.6,550.0 L975.3,550.0 Q997.3,550.0 1012.9,534.4 L1249.3,298.0" fill="none" stroke="#EE6677" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112.0,420.0 L621.6,420.0 Q643.6,420.0 665.6,420.0 L1624.3,420.0" fill="none" stroke="#228833" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112.0,410.0 L621.6,410.0 Q643.6,410.0 659.2,394.4 L748.0,305.6 Q763.6,290.0 785.6,290.0 L1609.3,290.0 Q1631.3,290.0 1631.3,312.0 L1631.3,394.0" fill="none" stroke="#4477AA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112.0,400.0 L621.6,400.0 Q643.6,400.0 659.2,384.4 L868.0,175.6 Q883.6,160.0 905.6,160.0 L1621.3,160.0 Q1643.3,160.0 1643.3,182.0 L1643.3,394.0" fill="none" stroke="#CCBB44" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M112.0,430.0 L621.6,430.0 Q643.6,430.0 659.2,445.6 L748.0,534.4 Q763.6,550.0 785.6,550.0 L975.3,550.0 Q997.3,550.0 1012.9,534.4 L1249.3,298.0" fill="none" stroke="#EE6677" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M600.7,374.3 L620.9,354.1 Q636.5,338.5 658.5,338.5 L1326.8,338.5 Q1348.8,338.5 1364.4,322.9 L1384.6,302.7" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M588.0,387.0 L620.9,354.1 Q636.5,338.5 658.5,338.5 L1326.8,338.5 Q1348.8,338.5 1364.4,322.9 L1397.3,290.0" fill="none" stroke="#4477AA" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M702.7,745.3 L715.9,732.1 Q729.0,719.0 747.6,719.0 L901.7,719.0 Q920.3,719.0 933.4,705.9 L946.6,692.7" fill="none" stroke="#ffffff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M690.0,758.0 L713.4,734.6 Q729.0,719.0 751.0,719.0 L898.3,719.0 Q920.3,719.0 935.9,703.4 L959.3,680.0" fill="none" stroke="#AA3377" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="235.0" y="387.0" width="26" height="66.0" rx="13.0" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="248.0" y="366.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Trimming</text>
+<rect x="405.0" y="387.0" width="26" height="66.0" rx="13.0" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="418.0" y="476.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Alignment</text>
+<rect x="575.0" y="387.0" width="26" height="66.0" rx="13.0" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="588.0" y="476.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Filter alignment</text>
+<circle cx="959.3" cy="290.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="959.3" y="256.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Peak calling narrow</text>
+<circle cx="1257.3" cy="290.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="1257.3" y="256.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Filter peaks</text>
+<circle cx="1397.3" cy="290.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="1397.3" y="256.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Calc frip</text>
+<circle cx="1537.3" cy="290.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="1537.3" y="256.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Frip summary</text>
+<circle cx="959.3" cy="550.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="959.3" y="586.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Peak calling broad</text>
+<circle cx="959.3" cy="420.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="959.3" y="456.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Plot fingerprint</text>
+<circle cx="959.3" cy="160.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="959.3" y="126.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Plot fragments</text>
+<circle cx="959.3" cy="680.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="959.3" y="646.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Generate signal tracks</text>
+<circle cx="503.0" cy="758.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="503.0" y="794.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Spikein alignment</text>
+<circle cx="690.0" cy="758.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="690.0" y="794.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Calculate scale factors</text>
+<circle cx="877.0" cy="758.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="877.0" y="794.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Spikein summary</text>
+<circle cx="341.0" cy="823.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="341.0" y="859.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Count barcodes</text>
+<circle cx="528.0" cy="823.0" r="11" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="528.0" y="859.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Barcode summary</text>
+<rect x="1620.3" y="389.0" width="34" height="62.0" rx="17.0" fill="#ffffff" stroke="#1f2328" stroke-width="3.2"/>
+<text x="1667.3" y="416.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="17" font-weight="700" fill="#1f2328" text-anchor="start">Multiqc</text>
+<path d="M47.0,391.0 H80.0 L93.0,404.0 V449.0 H47.0 Z" fill="#ffffff" stroke="#1f2328" stroke-width="2.2" stroke-linejoin="round"/>
+<path d="M80.0,391.0 V404.0 H93.0" fill="none" stroke="#1f2328" stroke-width="2.2" stroke-linejoin="round"/>
+<rect x="42.0" y="418.0" width="56.0" height="18" rx="3" fill="#57606a"/>
+<text x="70.0" y="432.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">IN</text>
+<text x="70.0" y="362.0" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="15" font-weight="700" fill="#1f2328" text-anchor="middle">Input</text>
+<line x1="48" y1="888.3" x2="1736.3" y2="888.3" stroke="#d0d7de" stroke-width="1.5"/>
+<line x1="48" y1="924.3" x2="94" y2="924.3" stroke="#4477AA" stroke-width="7" stroke-linecap="round"/>
+<text x="106.0" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Peak calling narrow</text>
+<line x1="276.98" y1="924.3" x2="322.98" y2="924.3" stroke="#EE6677" stroke-width="7" stroke-linecap="round"/>
+<text x="335.0" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Peak calling broad</text>
+<line x1="498.54" y1="924.3" x2="544.54" y2="924.3" stroke="#228833" stroke-width="7" stroke-linecap="round"/>
+<text x="556.5" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Plot fingerprint</text>
+<line x1="705.26" y1="924.3" x2="751.26" y2="924.3" stroke="#CCBB44" stroke-width="7" stroke-linecap="round"/>
+<text x="763.3" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Plot fragments</text>
+<line x1="897.14" y1="924.3" x2="943.14" y2="924.3" stroke="#66CCEE" stroke-width="7" stroke-linecap="round"/>
+<text x="955.1" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Generate signal tracks</text>
+<line x1="1148.38" y1="924.3" x2="1194.38" y2="924.3" stroke="#AA3377" stroke-width="7" stroke-linecap="round"/>
+<text x="1206.4" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Spikein alignment</text>
+<line x1="1362.52" y1="924.3" x2="1408.52" y2="924.3" stroke="#BBBBBB" stroke-width="7" stroke-linecap="round"/>
+<text x="1420.5" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Count barcodes</text>
+<circle cx="1564.4" cy="924.3" r="9" fill="#ffffff" stroke="#1f2328" stroke-width="3"/>
+<text x="1581.4" y="929.3" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#1f2328" text-anchor="start">Step</text>
+</svg>

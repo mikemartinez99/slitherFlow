@@ -9,17 +9,23 @@ rule, whatever the config. The price is that file paths have to be worked out wi
 - `input:` and `output:` are parsed as Python, and each value is reduced to the path patterns it could produce.
   Variables (all of their assignments, on every branch, and `+=`), `expand()`, f-strings, `temp()`-style
   wrappers, `multiext()`, `os.path.join()`, simple helper functions (`def f(): return f"..."`) and
-  `rules.<name>.output` references are followed. Anything that depends on the config or the sample sheet
-  becomes "could be anything", like a wildcard;
+  `rules.<name>.output` / `rules.<name>.input` references are followed. Anything that depends on the config or
+  the sample sheet becomes "could be anything", like a wildcard;
 - an input is joined to every rule whose output (or log / benchmark file) pattern could name the same file.
   Like most Snakemake workflows, wildcards are assumed not to span folders ({sample} never contains a /).
 
 It is a best effort: input functions that build paths from data, Snakemake modules (`use rule ... from`) and
 paths assembled in other ways can't be followed, so a connection may be missing (or, rarely, extra).
+
+Rules that only exist for some configs are marked `optional = true` in the graph (and drawn dashed): a rule
+defined inside an `if` / `elif` / `else` block, or in a file that is only included inside one. A rule defined on
+both the `if` and the `else` side of the same test exists either way, so it is not marked. Rules that always
+exist but that `rule all` only asks for under some settings are not marked either.
 """
 import ast
 import itertools
 import re
+import string
 import sys
 import textwrap
 from pathlib import Path
@@ -43,6 +49,8 @@ DEF_RE = re.compile(r"^(\s*)def\s+([A-Za-z_]\w*)\s*\(")
 ASSIGN_RE = re.compile(r"^\s*([A-Za-z_]\w*)\s*(\+=|=)(?!=)\s*(.*)$")
 INCLUDE_RE = re.compile(r"""^\s*include\s*:\s*(['"])(.+?)\1""")
 DIRECTIVE_RE = re.compile(r"^(\s+)([A-Za-z_]\w*)\s*:(.*)$")
+IF_RE = re.compile(r"^(\s*)(if|elif|else)\b")
+APPEND_RE = re.compile(r"^\s*([A-Za-z_]\w*)\.(append|extend)\s*\(")
 
 
 def snakemake_files(project):
@@ -94,21 +102,44 @@ class Project:
     """Everything read from the files: rules (name -> inputs/outputs), variables and helper functions."""
 
     def __init__(self, files):
-        self.rules = {}          # name -> {"input": [ast], "output": [ast], "order": n}
+        self.rules = {}          # name -> {"input": [ast], "output": [ast], "order": n, "defs": [...]}
         self.variables = {}      # name -> [ast expressions assigned to it, anywhere]
         self.functions = {}      # name -> [ast.FunctionDef] (a helper may be defined in more than one file)
+        self.includes = []       # (including file, included file, inside an if block?)
+        self.n_tests = 0         # each if / elif / else chain gets its own number
         for path in files:
-            self.read(path.read_text(encoding="utf-8", errors="replace").splitlines())
+            self.read(path.read_text(encoding="utf-8", errors="replace").splitlines(), Path(path).resolve())
         self.memo = {}
 
-    def read(self, lines):
+    def read(self, lines, path=None):
         i = 0
+        tests = []               # the if / elif / else blocks the current line is inside: (indent, test number, kind)
         while i < len(lines):
             line = lines[i]
+            if line.strip() and not line.lstrip().startswith("#"):
+                indent = len(line) - len(line.lstrip())
+                closed = None
+                while tests and tests[-1][0] >= indent:
+                    closed = tests.pop()
+                m = IF_RE.match(line)
+                if m:
+                    kind = m.group(2)
+                    if kind != "if" and closed and closed[0] == indent:    # elif / else: same test as the if
+                        tests.append((indent, closed[1], kind))
+                    else:
+                        self.n_tests += 1
+                        tests.append((indent, self.n_tests, kind))
+                    i += 1
+                    continue
+            m = INCLUDE_RE.match(line)
+            if m and path is not None:
+                self.includes.append((path, (path.parent / m.group(2)).resolve(), bool(tests)))
             m = RULE_RE.match(line)
             if m:
                 end = block(lines, i, len(m.group(1)))
                 self.read_rule(m.group(3), lines[i:end])
+                where = (tests[-1][1], tests[-1][2]) if tests else None
+                self.rules[m.group(3)]["defs"].append((path, where))
                 i = end
                 continue
             m = DEF_RE.match(line)
@@ -121,6 +152,21 @@ class Project:
                     pass
                 i = end
                 continue
+            m = APPEND_RE.match(line)
+            if m:                                         # TARGETS.append(x) / .extend(xs): like TARGETS += [x]
+                text, j, call = line.strip(), i, None
+                while j < len(lines) and j - i < 40:
+                    try:
+                        call = ast.parse(text, mode="eval").body
+                        break
+                    except SyntaxError:
+                        j += 1
+                        if j < len(lines):
+                            text += "\n" + lines[j]
+                if isinstance(call, ast.Call):
+                    self.variables.setdefault(m.group(1), []).extend(call.args)
+                    i = j + 1
+                    continue
             m = ASSIGN_RE.match(line)
             if m:
                 text, j = m.group(3), i
@@ -140,7 +186,7 @@ class Project:
             i += 1
 
     def read_rule(self, name, lines):
-        rule = self.rules.setdefault(name, {"input": [], "output": [], "order": len(self.rules)})
+        rule = self.rules.setdefault(name, {"input": [], "output": [], "order": len(self.rules), "defs": []})
         # Snakemake connects rules through log and benchmark files too, so they count as outputs here
         body_indent = None
         i = 1
@@ -158,6 +204,34 @@ class Project:
                 i = end
                 continue
             i += 1
+
+    def conditional_rules(self):
+        """Rules that only exist for some configs: each definition sits inside an if / elif / else block, or in a
+        file that is only included inside one. A rule defined on both the if and the else side of one test (in
+        a file that is always read) exists either way, so it is left out."""
+        included = {dst for _, dst, _ in self.includes}
+        files = {p for r in self.rules.values() for p, _ in r["defs"]} | {src for src, _, _ in self.includes}
+        always = {f for f in files if f not in included} | {None}    # main Snakefiles, and files nothing includes
+        todo = list(always)
+        while todo:                                                   # ... and what they include outside an if
+            a = todo.pop()
+            for src, dst, cond in self.includes:
+                if src == a and not cond and dst not in always:
+                    always.add(dst)
+                    todo.append(dst)
+        out = set()
+        for name, rule in self.rules.items():
+            defs = [(where, path in always) for path, where in rule["defs"]]
+            if not defs or any(where is None and read for where, read in defs):
+                continue
+            sides = {}
+            for where, read in defs:
+                if where is not None and read:
+                    sides.setdefault(where[0], set()).add(where[1])
+            if any({"if", "else"} <= kinds for kinds in sides.values()):
+                continue
+            out.add(name)
+        return out
 
     # ---- what can an expression evaluate to? -------------------------------------------------------------------
     # A set of path patterns (strings; ANY marks unknown text) and rule references (("rule", name) tuples).
@@ -220,6 +294,12 @@ class Project:
             ref = rule_reference(node)
             if ref:
                 return {("rule", ref)}
+            ref = rule_input_reference(node)
+            if ref:                                   # rules.x.input: whatever rule x reads
+                key = ("rules", ref, "input")
+                if ref not in self.rules or key in stack:
+                    return set()
+                return set().union(*(self.values(e, {}, stack + (key,)) for e in self.rules[ref]["input"]))
         if isinstance(node, ast.Subscript):
             return self.values(node.value, env, stack)
         if isinstance(node, ast.Call):
@@ -230,6 +310,8 @@ class Project:
         func = node.func
         name = func.id if isinstance(func, ast.Name) else func.attr if isinstance(func, ast.Attribute) else None
         args = [self.values(a, env, stack) for a in node.args]
+        if name == "expand" and args:
+            return self.expand(args[0], node.keywords, env, stack)
         if name in PASS_THROUGH:
             return args[0] if args else set()
         if name == "format" and isinstance(func, ast.Attribute):      # "x/{sample}.bam".format(sample=s): the
@@ -243,6 +325,45 @@ class Project:
         if name in self.functions and name not in stack:
             return self.call_function(name, args, node.keywords, env, stack)
         return set().union(*args) if args else set()                  # unknown function: whatever went into it
+
+    def expand(self, patterns, keywords, env, stack):
+        """expand("model/{name}.parquet", name=["nodes", "edges"]): fill in every combination of the keyword
+        values we can work out (as `product` does; `zip` gives a subset of these). A keyword we can't work out
+        (config, sample sheet), or a {field} with no keyword, stays a wildcard; {{x}} becomes the wildcard {x}."""
+        fill = {}
+        for kw in keywords:
+            if kw.arg is None or kw.arg == "allow_missing":
+                continue
+            vals = {v for v in self.values(kw.value, env, stack) if isinstance(v, str)}
+            if vals:
+                fill[kw.arg] = sorted(vals)
+        out = set()
+        for pattern in patterns:
+            if not isinstance(pattern, str):
+                out.add(pattern)                      # a rule reference: keep it as it is
+                continue
+            try:
+                parts = list(string.Formatter().parse(pattern))
+            except ValueError:                        # not a format string we can read: keep the pattern
+                out.add(pattern)
+                continue
+            fields = sorted({f for _, f, _, _ in parts if f in fill})
+            for combo in itertools.islice(itertools.product(*(fill[f] for f in fields)), MAX_VALUES):
+                values = dict(zip(fields, combo))
+                text = ""
+                for literal, field, spec, conv in parts:
+                    text += literal                   # Formatter has already turned {{ }} into { }
+                    if field is None:
+                        continue
+                    if field not in values:
+                        text += "{" + field + "}"     # no value we know: stays a wildcard
+                        continue
+                    try:
+                        text += format(values[field], spec or "")
+                    except ValueError:
+                        text += values[field]
+                out.add(text)
+        return set(itertools.islice(out, MAX_VALUES))
 
     def call_function(self, name, args, keywords, env, stack):
         """What a helper function defined in the project could return, given what its arguments could be
@@ -262,10 +383,14 @@ class Project:
             for kw in keywords:
                 if kw.arg in params:
                     local[kw.arg] = self.values(kw.value, env, stack) or {ANY}
-            # local variables: every value assigned to them (`x = ...`, `x += ...`, `x["key"] = ...`);
-            # twice over, so a variable built from another one picks up its values
+            # local variables: every value assigned to them (`x = ...`, `x += ...`, `x["key"] = ...`,
+            # `x.append(...)`, `x.extend(...)`); twice over, so a variable built from another one picks up its values
             assigned = {}
             for sub in ast.walk(fn):
+                if (isinstance(sub, ast.Call) and isinstance(sub.func, ast.Attribute)
+                        and sub.func.attr in ("append", "extend") and isinstance(sub.func.value, ast.Name)
+                        and sub.func.value.id not in params):
+                    assigned.setdefault(sub.func.value.id, []).extend(sub.args)
                 if isinstance(sub, (ast.Assign, ast.AugAssign)):
                     for t in (sub.targets if isinstance(sub, ast.Assign) else [sub.target]):
                         t = t.value if isinstance(t, ast.Subscript) else t
@@ -282,6 +407,23 @@ class Project:
 
 def rule_reference(node):
     """'x' for rules.x.output..., checkpoints.x.get(...).output..., else None."""
+    parts = reference_parts(node)
+    if parts and len(parts) >= 3 and parts[0] in ("rules", "checkpoints") and "output" in parts[2:]:
+        return parts[1]
+    return None
+
+
+def rule_input_reference(node):
+    """'x' for rules.x.input... (a target rule that gathers another rule's inputs, e.g. `rule all: input:
+    rules.figures.input`), else None."""
+    parts = reference_parts(node)
+    if parts and len(parts) >= 3 and parts[0] == "rules" and parts[2] == "input":
+        return parts[1]
+    return None
+
+
+def reference_parts(node):
+    """['rules', 'x', 'output', ...] for an attribute chain like rules.x.output[0] or rules.x.output.y, else None."""
     parts = []
     while True:
         if isinstance(node, ast.Attribute):
@@ -297,9 +439,7 @@ def rule_reference(node):
         else:
             return None
     parts.reverse()
-    if len(parts) >= 3 and parts[0] in ("rules", "checkpoints") and "output" in parts[2:]:
-        return parts[1]
-    return None
+    return parts
 
 
 WILDCARD = re.compile(r"\{[^{}]*(\{[^{}]*\}[^{}]*)*\}")      # {sample} or {sample,[a-z]{2}}
@@ -350,6 +490,24 @@ def can_match_same_file(p, q):
         sys.setrecursionlimit(limit)
 
 
+def mark_not_run(scan_dot, run_dot):
+    """`--scan --compare`: mark every rule in the scanned graph that `snakemake --rulegraph` (run_dot, for the
+    current config) leaves out as `optional = true`. Returns (new DOT text, names of the rules newly marked).
+
+    This catches rules that are always defined but only asked for under some settings, which reading the files
+    can't see: `expand(...) if <setting> else []` in `rule all`, or an input function that adds a file only for
+    some settings."""
+    run = set(re.findall(r'\[\s*label\s*=\s*"([^"]+)"', run_dot))
+    marked, out = [], []
+    for line in scan_dot.splitlines():
+        m = re.match(r'(\s*\d+\s*\[\s*label\s*=\s*"([^"]+)")(.*)$', line)
+        if m and m.group(2) != "all" and m.group(2) not in run and "optional" not in m.group(3):
+            line = m.group(1) + ", optional = true" + m.group(3)
+            marked.append(m.group(2))
+        out.append(line)
+    return "\n".join(out) + "\n", marked
+
+
 def rulegraph_from_files(project, min_literal=3):
     """Read every Snakefile / .smk under `project` and return a rule graph in `snakemake --rulegraph` (DOT) form.
     Only rules that lead to `rule all` are kept when the project has one (so helper rules for building
@@ -391,9 +549,22 @@ def rulegraph_from_files(project, min_literal=3):
                 if bb == b and a not in keep:
                     keep.add(a)
                     todo.append(a)
+        found, kept = len(names) - 1, len(keep) - 1
+        # warn when the map would leave most of a big pipeline out, or (any size) when nothing is left to draw
+        if found and (kept == 0 or (found >= 8 and kept < found / 4)):
+            if kept == 0:
+                head = (f"warning: none of the {found} rules found lead to `rule all`, so there is nothing to draw. "
+                        "`rule all` probably builds its inputs in a way --scan can't follow (e.g. a function "
+                        "imported from another module); ")
+            else:
+                head = (f"warning: only {kept} of the {found} rules found lead to `rule all`, so the map leaves most "
+                        "of the pipeline out. If that's wrong, `rule all` may build its inputs in a way --scan can't "
+                        "follow; ")
+            print(head + "compare with `snakemake --rulegraph`.", file=sys.stderr)
     ids = {r: k for k, r in enumerate(r for r in names if r in keep)}
+    conditional = proj.conditional_rules() - {"all"}
     out = ["digraph snakemake_dag {"]
-    out += [f'\t{i}[label = "{r}"];' for r, i in ids.items()]
+    out += [f'\t{i}[label = "{r}"{", optional = true" if r in conditional else ""}];' for r, i in ids.items()]
     out += [f"\t{ids[a]} -> {ids[b]}" for a, b in sorted(edges, key=lambda e: (ids.get(e[1], 0), ids.get(e[0], 0)))
             if a in ids and b in ids]
     out.append("}")

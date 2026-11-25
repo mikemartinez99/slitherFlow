@@ -1,0 +1,131 @@
+# A made-up energy-system model with the shape from issue "every side line is drawn optional":
+# one general download rule plus four independent weather / hydrology downloads that run on every invocation.
+# Two steps really are optional: heat demand (a rule inside an `if` block) and validation (a file that is only
+# included under an `if`).
+configfile: "config.yaml"
+
+include: "rules/common.smk"
+
+if config["validate"]:
+    include: "rules/validation.smk"
+
+TARGETS = ["results/summary.csv"]
+if config["heat"]:
+    TARGETS.append("resources/heat_demand.nc")
+if config["validate"]:
+    TARGETS.append("results/validation.csv")
+
+rule all:
+    input: TARGETS
+
+rule download_data:
+    output: "data/bundle/README.md"
+    shell: "fetch-bundle > {output}"
+
+rule download_era5:
+    output: "data/weather/era5.nc"
+    shell: "fetch-era5 > {output}"
+
+rule download_cerra:
+    output: "data/weather/cerra.nc"
+    shell: "fetch-cerra > {output}"
+
+rule download_efas_static:
+    output: "data/hydro/efas_static.nc"
+    shell: "fetch-efas-static > {output}"
+
+rule download_efas_discharge:
+    output: "data/hydro/efas_discharge.nc"
+    shell: "fetch-efas-discharge > {output}"
+
+rule build_shapes:
+    input: "data/bundle/README.md"
+    output: "resources/shapes.geojson"
+    shell: "shapes {input} {output}"
+
+rule build_network:
+    input: "resources/shapes.geojson"
+    output: "resources/base_network.nc"
+    shell: "network {input} {output}"
+
+rule build_powerplants:
+    input: "data/bundle/README.md"
+    output: "resources/powerplants.csv"
+    shell: "powerplants {input} {output}"
+
+rule build_load:
+    input:
+        bundle = "data/bundle/README.md",
+        shapes = "resources/shapes.geojson",
+    output: "resources/load.csv"
+    shell: "load {input} {output}"
+
+rule build_cutout_era5:
+    input:
+        weather = "data/weather/era5.nc",
+        shapes = "resources/shapes.geojson",
+    output: "cutouts/era5.nc"
+    shell: "cutout {input} {output}"
+
+rule build_cutout_cerra:
+    input:
+        weather = "data/weather/cerra.nc",
+        shapes = "resources/shapes.geojson",
+    output: "cutouts/cerra.nc"
+    shell: "cutout {input} {output}"
+
+rule build_renewable_profiles:
+    input:
+        era5 = "cutouts/era5.nc",
+        cerra = "cutouts/cerra.nc",
+        network = "resources/base_network.nc",
+    output: "resources/profiles.nc"
+    shell: "profiles {input} {output}"
+
+rule build_hydro_inflow:
+    input:
+        static = "data/hydro/efas_static.nc",
+        discharge = "data/hydro/efas_discharge.nc",
+        shapes = "resources/shapes.geojson",
+    output: "resources/hydro_inflow.csv"
+    shell: "inflow {input} {output}"
+
+rule add_electricity:
+    input:
+        network = "resources/base_network.nc",
+        powerplants = "resources/powerplants.csv",
+        load = "resources/load.csv",
+        profiles = "resources/profiles.nc",
+        hydro = "resources/hydro_inflow.csv",
+    output: "networks/elec.nc"
+    shell: "add-electricity {input} {output}"
+
+rule prepare_network:
+    input: "networks/elec.nc"
+    output: "networks/elec_prepared.nc"
+    shell: "prepare {input} {output}"
+
+rule solve_network:
+    input: "networks/elec_prepared.nc"
+    output: "results/networks/elec_solved.nc"
+    shell: "solve {input} {output}"
+
+rule plot_results:
+    input: "results/networks/elec_solved.nc"
+    output: "results/plots/capacity.pdf"
+    shell: "plot {input} {output}"
+
+rule make_summary:
+    input:
+        network = "results/networks/elec_solved.nc",
+        plots = "results/plots/capacity.pdf",
+    output: "results/summary.csv"
+    shell: "summary {input} {output}"
+
+if config["heat"]:
+    rule build_heat_demand:
+        input:
+            weather = "cutouts/era5.nc",
+            shapes = "resources/shapes.geojson",
+        output: "resources/heat_demand.nc"
+        shell: "heat {input} {output}"

@@ -53,12 +53,30 @@ def test_bad_spec_stops_with_a_clear_message(change, message):
         slitherflow.render(broken(change))
 
 
+@pytest.mark.parametrize("palette, message", [
+    ("rainbow", "palette 'rainbow' is not one of: okabe-ito"),
+    ([], "non-empty list of colours"),
+    (["#000000", 3], "non-empty list of colours"),
+    ({"a": "#000000"}, "non-empty list of colours"),
+])
+def test_bad_palette_stops_with_a_clear_message(palette, message):
+    with pytest.raises(SystemExit, match=message):
+        slitherflow.render(dict(copy.deepcopy(BASE), palette=palette))
+
+
 def test_empty_rulegraph():
     with pytest.raises(SystemExit, match="no rules found"):
         slitherflow.spec_from_rulegraph("this is not a rule graph")
 
 
 def test_rulegraph_that_is_all_cycle():
+    """No rule is a source, so the loop is broken at the first rule: a -> b is drawn, b -> a is listed as left
+    out (before, this stopped with "no source rule")."""
     dot = '0[label = "a"];\n1[label = "b"];\n0 -> 1\n1 -> 0\n'
+    text = slitherflow.spec_from_rulegraph(dot)
+    assert "#   - b -> a" in text
+
+
+def test_rulegraph_with_no_rules_but_all():
     with pytest.raises(SystemExit, match="no source rule"):
-        slitherflow.spec_from_rulegraph(dot)
+        slitherflow.spec_from_rulegraph('0[label = "all"];\n')

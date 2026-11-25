@@ -39,12 +39,27 @@ Snakemake's rule graph only includes the rules your current config uses. If rRNA
 slitherflow auto /path/to/my-pipeline --png --scan
 ```
 
-Instead of running Snakemake, this reads every `Snakefile` and `.smk` file in the project (hidden and `test`/`tests` folders are skipped). It works out which rules connect by matching each rule's inputs against other rules' outputs, the same way Snakemake does. It follows variables, `expand()`, f-strings, helper functions, input functions and `rules.X.output`, and anything that depends on the config is treated like a wildcard. Only rules that lead to `rule all` are kept, so helper rules for building references don't clutter the map.
+Instead of running Snakemake, this reads every `Snakefile` and `.smk` file in the project (hidden and `test`/`tests` folders are skipped). It works out which rules connect by matching each rule's inputs against other rules' outputs, the same way Snakemake does. It follows variables, `expand()`, f-strings, helper functions, input functions, `rules.X.output` and `rules.X.input`, and anything that depends on the config is treated like a wildcard. Only rules that lead to `rule all` are kept, so helper rules for building references don't clutter the map.
 
-A scanned map shows every path the pipeline can take, so it's usually busier than the default one. Alternative steps (say, two aligners) appear side by side, and you'll probably want to mark the optional ones with [`optional: true`](guide/customizing.md#mark-optional-steps).
+A scanned map shows every path the pipeline can take, so it's usually busier than the default one. Rules defined inside an `if` block, or in a file that's only included inside one (`if config["dedup"]: include: "rules/dedup.smk"`), are marked [`optional: true`](guide/customizing.md#mark-optional-steps) and drawn dashed. A rule defined on both sides of an `if`/`else` exists either way, so it isn't marked. Rules that are always defined but only asked for under some settings can't be spotted from the files alone, for example `expand(...) if config["validate"] else []` in `rule all`, or an input function that adds a file for one backend. To catch those, add `--compare`:
+
+```shell
+slitherflow auto /path/to/my-pipeline --png --scan --compare -- --configfile config/config.yaml
+```
+
+This also runs `snakemake --rulegraph` (with any Snakemake arguments after `--`) and marks every rule your current config doesn't use as optional. It needs Snakemake and a config that resolves, like the default mode.
 
 !!! warning "Best effort"
     Paths built from the sample sheet at run time, or rules imported with `use rule ... from`, can't always be followed. If a connection is missing, compare with `snakemake --rulegraph`, or add it yourself with [`feeds`](guide/customizing.md#connect-lines-together).
+
+### If the scanned map is nearly empty
+
+`--scan` only keeps rules that lead to `rule all`. If `rule all` builds its list of targets in a way the scan can't follow, such as a function imported from another module (`input: final_targets(config)`), most or all of the pipeline drops out. slitherFlow warns you when that happens:
+
+- **"none of the N rules found lead to `rule all`, so there is nothing to draw"**: nothing connects to `rule all` at all. The draft then stops with "the rule graph has no source rule".
+- **"only K of the N rules found lead to `rule all`"**: on a pipeline with 8 or more rules, fewer than a quarter of them made it onto the map.
+
+Either way, compare with the default mode (`slitherflow auto /path/to/my-pipeline`), which asks Snakemake for the rule graph and so sees the real targets. If Snakemake can't run there, save its graph somewhere it can (`snakemake --rulegraph > rulegraph.dot`) and pass it with `--rulegraph rulegraph.dot`.
 
 ## Try it on the bundled example
 

@@ -44,3 +44,19 @@ def test_strict_fails_on_overlaps(tmp_path):
     with pytest.raises(SystemExit) as exc:
         slitherflow.main(["render", str(spec), "--strict"])
     assert exc.value.code == 1
+
+
+def test_palette_flag(tmp_path):
+    spec, svg = tmp_path / "spec.yaml", tmp_path / "map.svg"
+    slitherflow.main(["draft", "my-pipeline", "--rulegraph", DOT, "-o", str(spec), "--palette", "tol-muted"])
+    assert "palette: tol-muted" in spec.read_text(encoding="utf-8")
+    slitherflow.main(["render", str(spec), "-o", str(svg)])
+    assert slitherflow.PALETTES["tol-muted"][0] in svg.read_text(encoding="utf-8")
+    slitherflow.main(["render", str(spec), "-o", str(svg), "--palette", "ibm"])     # the flag wins over the spec
+    text = svg.read_text(encoding="utf-8")
+    assert slitherflow.PALETTES["ibm"][0] in text and slitherflow.PALETTES["tol-muted"][0] not in text
+
+
+def test_unknown_palette_flag_is_rejected(tmp_path):
+    with pytest.raises(SystemExit):
+        slitherflow.main(["draft", "my-pipeline", "--rulegraph", DOT, "-o", str(tmp_path / "s.yaml"), "--palette", "nope"])

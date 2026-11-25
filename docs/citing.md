@@ -2,13 +2,13 @@
 
 If you use slitherFlow in your work, please cite it:
 
-> Martinez, M. (2026). *slitherFlow: subway maps for Snakemake pipelines* (Version 1.0.0) [Computer software]. https://github.com/mikemartinez99/slitherFlow
+> Martinez, M. (2026). *slitherFlow: subway maps for Snakemake pipelines* (Version 1.1.0) [Computer software]. https://github.com/mikemartinez99/slitherFlow
 
 ```bibtex
 @software{slitherflow,
   author  = {Martinez, Mike},
   title   = {slitherFlow: subway maps for Snakemake pipelines},
-  version = {1.0.0},
+  version = {1.1.0},
   year    = {2026},
   url     = {https://github.com/mikemartinez99/slitherFlow}
 }

@@ -4,9 +4,10 @@
 
 title: "GDSC-CUT-RUN-pipeline"
 subtitle: "v1.0  ·  Snakemake"
-input: {label: "Input", sublabel: "", file: "FASTQ"}
+palette: okabe-ito             # line colours: okabe-ito, tol-bright, tol-vibrant, tol-muted, ibm, tab10, or a list of colours
+input: {label: "Input", sublabel: "", file: "IN"}   # file: text on the input icon, e.g. "FASTQ", "CSV", "NC"
 
-trunk:                      # steps every sample goes through
+trunk:                      # steps every run goes through
   stations:
     - {name: "Trimming", tool: ""}
     - {name: "Alignment", tool: ""}
@@ -51,7 +52,7 @@ lines:
     name: "Spikein alignment"
     from: "Trimming"
     row: 2.6
-    optional: true         # dashed; delete if the step always runs
+    # optional: true       # uncomment to draw it dashed, if these steps only run for some configs
     to: "terminus"
     stations:
       - {name: "Spikein alignment", tool: ""}
@@ -61,7 +62,7 @@ lines:
     name: "Count barcodes"
     from: "input"
     row: 3.1
-    optional: true         # dashed; delete if the step always runs
+    # optional: true       # uncomment to draw it dashed, if these steps only run for some configs
     to: "terminus"
     stations:
       - {name: "Count barcodes", tool: ""}

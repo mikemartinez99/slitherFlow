@@ -12,6 +12,7 @@ class Canvas:
         self.s = style
         self.out = []
         self.texts, self.icons, self.lines, self.stations = [], [], [], []
+        self.terminus = None      # desc of the terminus pill, if the map has one
         self.xmin = self.ymin = math.inf
         self.xmax = self.ymax = -math.inf
 

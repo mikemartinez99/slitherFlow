@@ -1,0 +1,35 @@
+# A made-up workflow where two rules are always defined but only used for some backends, so reading the files
+# can't tell they are optional (`--scan --compare` can: they're missing from `snakemake --rulegraph`).
+configfile: "config.yaml"
+
+BACKENDS = config["backends"]
+
+rule all:
+    input:
+        "results/summary.csv",
+        expand("results/validation_{ref}.csv", ref=["reference"]) if "reference" in BACKENDS else [],
+
+rule simulate:
+    output: "results/simulation.csv"
+    shell: "simulate > {output}"
+
+rule fast_correction:
+    input: "results/simulation.csv"
+    output: "results/fast_correction.csv"
+    shell: "correct {input} > {output}"
+
+def summary_inputs(wildcards):
+    inputs = ["results/simulation.csv"]
+    if "fast" in BACKENDS:
+        inputs.append("results/fast_correction.csv")
+    return inputs
+
+rule summarize:
+    input: summary_inputs
+    output: "results/summary.csv"
+    shell: "summarize {input} > {output}"
+
+rule validate:
+    input: "results/simulation.csv"
+    output: "results/validation_{ref}.csv"
+    shell: "validate {input} {wildcards.ref} > {output}"

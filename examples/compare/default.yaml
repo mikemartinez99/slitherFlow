@@ -1,0 +1,22 @@
+# Starter slitherFlow spec generated from `snakemake --rulegraph`.
+# Rename stations, add tools/outputs, regroup lines and tune rows, then render with:
+#   slitherflow render this.yaml -o map.svg --png --pdf
+
+title: "backend-pipeline"
+subtitle: "v1.0  ·  Snakemake"
+input: {label: "Input", sublabel: "", file: "IN"}   # file: text on the input icon, e.g. "FASTQ", "CSV", "NC"
+
+trunk:                      # steps every run goes through
+  stations:
+    - {name: "Simulate", tool: ""}
+  lines: [line1]   # top -> bottom on the trunk
+
+lines:
+  line1:
+    name: "Summarize"
+    row: -1            # negative = above the trunk
+    to: "none"
+    stations:
+      - {name: "Summarize", tool: ""}
+
+footnote: ""

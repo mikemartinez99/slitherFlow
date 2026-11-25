@@ -59,3 +59,67 @@ def test_overlap_check_reports_a_real_overlap():
     spec["lines"]["fragments"]["from"]["station"] = "Fingerprints"
     _, cv = slitherflow.render(spec)
     assert any("Fingerprints" in p for p in slitherflow.check_overlaps(cv))
+
+
+def test_terminus_with_nothing_going_in_is_reported():
+    """A terminus that no line reaches would sit on the map on its own; the check says so (and --strict fails)."""
+    spec = {"trunk": {"stations": [{"name": "A"}]},
+            "lines": {"main": {"row": 0, "to": "none", "stations": [{"name": "B"}]}},
+            "terminus": {"name": "Report"}}
+    _, cv = slitherflow.render(spec)
+    assert any(p.startswith("station 'Report' has no lines going into it") for p in slitherflow.check_overlaps(cv))
+
+
+def test_a_lone_trunk_station_is_not_reported():
+    """A one-rule pipeline is just a trunk station with no lines: nothing is wrong with that."""
+    _, cv = slitherflow.render({"trunk": {"stations": [{"name": "Build"}]}, "lines": {}})
+    assert slitherflow.check_overlaps(cv) == []
+
+
+def line_colours(svg):
+    """Stroke colours of the legend's line swatches, in legend order."""
+    import re
+    return re.findall(r'<line x1="[^"]+" y1="[^"]+" x2="[^"]+" y2="[^"]+" stroke="(#[0-9A-Fa-f]{6})" stroke-width="[^"]+" stroke-linecap', svg)
+
+
+def test_default_palette_is_okabe_ito():
+    svg, _ = slitherflow.render(readme_spec())
+    assert slitherflow.PALETTE == slitherflow.PALETTES["okabe-ito"]
+    assert line_colours(svg)[1] == slitherflow.PALETTES["okabe-ito"][1]     # qc: second line, no colour of its own
+
+
+@pytest.mark.parametrize("name", sorted(slitherflow.PALETTES))
+def test_named_palette_colours_the_lines(name):
+    spec = readme_spec()
+    spec["palette"] = name
+    svg, cv = slitherflow.render(spec)
+    colours = slitherflow.PALETTES[name]
+    # peaks keeps its own colour; qc and spike take the palette's 2nd and 3rd colours; the branch shares qc's
+    assert line_colours(svg)[:3] == ["#009E73", colours[1], colours[2]]
+    assert slitherflow.check_overlaps(cv) == []
+
+
+def test_palette_name_ignores_case():
+    spec = readme_spec()
+    spec["palette"] = "Tol-Bright"
+    svg, _ = slitherflow.render(spec)
+    assert line_colours(svg)[1] == slitherflow.PALETTES["tol-bright"][1]
+
+
+def test_custom_palette_list_is_used_and_repeats():
+    spec = readme_spec()
+    spec["palette"] = ["#111111", "#222222"]
+    svg, _ = slitherflow.render(spec)
+    assert line_colours(svg)[:3] == ["#009E73", "#222222", "#111111"]    # third colourless line wraps round
+
+
+@pytest.mark.parametrize("name", sorted(slitherflow.PALETTES))
+def test_palette_preview_is_up_to_date(name):
+    """Every palette has a preview in examples/palettes/ (shown in the docs), and it matches what the renderer
+    draws today. Rebuild them with the loop in docs/examples.md."""
+    spec = yaml.safe_load((EXAMPLES / "cutrun" / "cutrun_draft.yaml").read_text(encoding="utf-8"))
+    spec["palette"] = name
+    svg, _ = slitherflow.render(spec)
+    preview = EXAMPLES / "palettes" / f"{name}.svg"
+    assert preview.with_suffix(".png").exists(), f"no preview image for palette '{name}'"
+    assert svg == preview.read_text(encoding="utf-8"), f"examples/palettes/{name}.svg is out of date"
