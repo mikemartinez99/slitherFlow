@@ -550,11 +550,18 @@ def rulegraph_from_files(project, min_literal=3):
                     keep.add(a)
                     todo.append(a)
         found, kept = len(names) - 1, len(keep) - 1
-        if found >= 8 and kept < found / 4:
-            print(f"warning: only {kept} of the {found} rules found lead to `rule all`, so the map leaves most of the "
-                  "pipeline out. If that's wrong, `rule all` may build its inputs in a way --scan can't follow; "
-                  "compare with `snakemake --rulegraph`.", file=sys.stderr)
-    ids ={r: k for k, r in enumerate(r for r in names if r in keep)}
+        # warn when the map would leave most of a big pipeline out, or (any size) when nothing is left to draw
+        if found and (kept == 0 or (found >= 8 and kept < found / 4)):
+            if kept == 0:
+                head = (f"warning: none of the {found} rules found lead to `rule all`, so there is nothing to draw. "
+                        "`rule all` probably builds its inputs in a way --scan can't follow (e.g. a function "
+                        "imported from another module); ")
+            else:
+                head = (f"warning: only {kept} of the {found} rules found lead to `rule all`, so the map leaves most "
+                        "of the pipeline out. If that's wrong, `rule all` may build its inputs in a way --scan can't "
+                        "follow; ")
+            print(head + "compare with `snakemake --rulegraph`.", file=sys.stderr)
+    ids = {r: k for k, r in enumerate(r for r in names if r in keep)}
     conditional = proj.conditional_rules() - {"all"}
     out = ["digraph snakemake_dag {"]
     out += [f'\t{i}[label = "{r}"{", optional = true" if r in conditional else ""}];' for r, i in ids.items()]

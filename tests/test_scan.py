@@ -227,6 +227,8 @@ def test_warns_when_few_rules_lead_to_all(tmp_path, capsys):
     assert "only 1 of the 9 rules found lead to `rule all`" in capsys.readouterr().err
     rulegraph_from_files(PROJECT)
     assert "warning" not in capsys.readouterr().err
+
+
 BACKEND = DATA / "backend_project"
 # `snakemake --rulegraph` for backend_project's config (backends: ["default"]): validate and fast_correction
 # are defined, but only used for the "reference" and "fast" backends
@@ -276,3 +278,35 @@ def test_cli_compare_needs_scan(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(SystemExit, match="--compare only works with --scan"):
         slitherflow.main(["draft", str(BACKEND), "--compare"])
+
+
+SMALL_RULES = ('rule a:\n    output: "out/a.txt"\n    shell: "x"\n'
+               'rule b:\n    input: "out/a.txt"\n    output: "out/b.txt"\n    shell: "x"\n'
+               'rule c:\n    output: "out/c.txt"\n    shell: "x"\n')
+
+
+def test_warns_on_a_small_pipeline_when_no_rules_lead_to_all(tmp_path, capsys):
+    """Under 8 rules the "only a few" warning stays quiet, but when nothing at all leads to `rule all` (here its
+    inputs come from a function in an imported module) the draft would stop with "no source rule": say why."""
+    (tmp_path / "Snakefile").write_text('from helpers import final_targets\n\n'
+                                        'rule all:\n    input: final_targets(config)\n' + SMALL_RULES, encoding="utf-8")
+    rulegraph_from_files(tmp_path)
+    assert "none of the 3 rules found lead to `rule all`" in capsys.readouterr().err
+
+
+def test_cli_says_why_before_no_source_rule(tmp_path, capsys):
+    (tmp_path / "Snakefile").write_text('rule all:\n    input: final_targets(config)\n' + SMALL_RULES, encoding="utf-8")
+    with pytest.raises(SystemExit, match="no source rule"):
+        slitherflow.main(["draft", str(tmp_path), "--scan", "-o", str(tmp_path / "spec.yaml")])
+    assert "none of the 3 rules found lead to `rule all`" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("snakefile", [
+    'rule all:\n    input: "out/b.txt"\n' + SMALL_RULES,      # 2 of 3 lead to rule all
+    'rule all:\n    input: "out/c.txt"\n' + SMALL_RULES,      # 1 of 3: few, but under 8 rules, so no warning
+    'rule all:\n    input: final_targets(config)\n',         # only rule all: nothing found, nothing to warn about
+], ids=["most", "few-but-small", "only-all"])
+def test_no_warning_on_small_pipelines_with_something_to_draw(tmp_path, capsys, snakefile):
+    (tmp_path / "Snakefile").write_text(snakefile, encoding="utf-8")
+    rulegraph_from_files(tmp_path)
+    assert "warning" not in capsys.readouterr().err
