@@ -1,9 +1,9 @@
 # Commands
 
 ```text
-slitherflow auto   PROJECT [-o map.svg]   [--scan [--compare] | --rulegraph FILE.dot] [--png] [--pdf] [--strict] [-- SNAKEMAKE ARGS]
-slitherflow draft  PROJECT [-o spec.yaml] [--scan [--compare] | --rulegraph FILE.dot] [-- SNAKEMAKE ARGS]
-slitherflow render SPEC    [-o map.svg]   [--png] [--pdf] [--strict]
+slitherflow auto   PROJECT [-o map.svg]   [--scan [--compare] | --rulegraph FILE.dot] [--palette NAME] [--png] [--pdf] [--strict] [-- SNAKEMAKE ARGS]
+slitherflow draft  PROJECT [-o spec.yaml] [--scan [--compare] | --rulegraph FILE.dot] [--palette NAME] [-- SNAKEMAKE ARGS]
+slitherflow render SPEC    [-o map.svg]   [--palette NAME] [--png] [--pdf] [--strict]
 slitherflow --version
 ```
 
@@ -36,6 +36,7 @@ slitherflow --version
 | `-o`, `--output` | `draft` | The spec `.yaml` (default: `<project>_subway.yaml`). |
 | `-o`, `--output` | `render` | The map `.svg` (default: next to the spec). |
 | `--overwrite-spec` | `auto` | Replace an existing spec. By default `auto` keeps it, so your edits are safe. |
+| `--palette NAME` | `auto`, `draft`, `render` | Line colours: `okabe-ito` (default), `tol-bright`, `tol-vibrant`, `tol-muted`, `ibm` or `tab10`. A new draft gets `palette: NAME`; on `render` (and `auto` with a kept spec) it overrides the spec's `palette:` without changing the file. See [Colour palettes](spec.md#colour-palettes). |
 | `--png` | `auto`, `render` | Also write a PNG at 3× resolution. Needs `rsvg-convert`. |
 | `--pdf` | `auto`, `render` | Also write a vector PDF. Needs `rsvg-convert`. |
 | `--strict` | `auto`, `render` | Exit with an error if the [overlap check](../guide/layout.md#overlap-check) finds anything. Useful in CI. |

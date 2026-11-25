@@ -4,6 +4,7 @@
 
 title: "GDSC-miRNAseq-analysis-pipeline"
 subtitle: "v1.0  ·  Snakemake"
+palette: okabe-ito             # line colours: okabe-ito, tol-bright, tol-vibrant, tol-muted, ibm, tab10, or a list of colours
 input: {label: "Input", sublabel: "", file: "IN"}   # file: text on the input icon, e.g. "FASTQ", "CSV", "NC"
 
 trunk:                      # steps every run goes through

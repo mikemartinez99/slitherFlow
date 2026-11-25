@@ -3,13 +3,14 @@ import math
 import sys
 
 from .canvas import Canvas, trim_path, two_lines, wrap_words
-from .style import FEED_LANE, ICON_H, ICON_W, LABEL_OFFSET, PALETTE, STYLE, TOOL_OFFSET, text_width
+from .style import FEED_LANE, ICON_H, ICON_W, LABEL_OFFSET, STYLE, TOOL_OFFSET, palette_colours, text_width
 
 
 def render(spec):
     s = dict(STYLE, **(spec.get("style") or {}))
     cv = Canvas(s)
     m, lw, gap, rh = s["margin"], s["line_width"], s["gap"], s["row_height"]
+    palette = palette_colours(spec.get("palette"))
 
     lines = spec.get("lines") or {}
     is_branch = lambda ln: isinstance(ln.get("from"), dict)   # from: {line: <id>, station: <name>}
@@ -18,7 +19,7 @@ def render(spec):
         ln.setdefault("stations", [])
         if not is_branch(ln):
             ln.setdefault("name", lid)
-            ln.setdefault("color", PALETTE[k % len(PALETTE)])
+            ln.setdefault("color", palette[k % len(palette)])
             k += 1
 
     def parent_of(lid):

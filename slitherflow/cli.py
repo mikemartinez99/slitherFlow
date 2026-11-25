@@ -1,8 +1,8 @@
 """slitherFlow: subway maps for Snakemake pipelines.
 
-    slitherflow auto   PROJECT_DIR [-o map.svg] [--scan [--compare] | --rulegraph FILE.dot] [--png] [--pdf] [-- SNAKEMAKE ARGS]
-    slitherflow draft  PROJECT_DIR [-o spec.yaml] [--scan [--compare] | --rulegraph FILE.dot] [-- SNAKEMAKE ARGS]
-    slitherflow render SPEC.yaml   [-o map.svg] [--png] [--pdf] [--strict]
+    slitherflow auto   PROJECT_DIR [-o map.svg] [--scan [--compare] | --rulegraph FILE.dot] [--palette NAME] [--png] [--pdf] [-- SNAKEMAKE ARGS]
+    slitherflow draft  PROJECT_DIR [-o spec.yaml] [--scan [--compare] | --rulegraph FILE.dot] [--palette NAME] [-- SNAKEMAKE ARGS]
+    slitherflow render SPEC.yaml   [-o map.svg] [--palette NAME] [--png] [--pdf] [--strict]
 
 By default `auto` and `draft` run `snakemake --rulegraph --nolock` inside PROJECT_DIR, which shows the rules your
 current config uses; anything after `--` is passed to Snakemake (e.g. `-- --configfile config/test.yaml`).
@@ -24,16 +24,19 @@ from .overlaps import check_overlaps
 from .render import render
 from .rulegraph import rulegraph_from_project
 from .scan import mark_not_run, rulegraph_from_files
+from .style import DEFAULT_PALETTE, PALETTES
 
 
-def write_draft(dot_text, project_name, out):
-    spec_text = spec_from_rulegraph(dot_text, title=project_name)
+def write_draft(dot_text, project_name, out, palette=None):
+    spec_text = spec_from_rulegraph(dot_text, title=project_name, palette=palette or DEFAULT_PALETTE)
     Path(out).write_text(spec_text, encoding="utf-8")
     print(f"wrote {out}")
 
 
-def render_file(spec_path, out, png=False, pdf=False, strict=False):
+def render_file(spec_path, out, png=False, pdf=False, strict=False, palette=None):
     spec = yaml.safe_load(Path(spec_path).read_text(encoding="utf-8"))
+    if palette:                             # --palette wins over the spec's own `palette:`
+        spec["palette"] = palette
     svg, cv = render(spec)
     out = Path(out) if out else Path(spec_path).with_suffix(".svg")
     out.write_text(svg, encoding="utf-8")
@@ -72,6 +75,11 @@ def main(argv=None):
     ap.add_argument("--version", action="version", version=f"slitherflow {__version__}")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
+    def palette_opt(p):
+        p.add_argument("--palette", choices=list(PALETTES), metavar="NAME",
+                       help=f"line colours: {', '.join(PALETTES)} (default: the spec's `palette:`, else "
+                            f"{DEFAULT_PALETTE})")
+
     def render_opts(p):
         p.add_argument("--png", action="store_true", help="also write a PNG (3x) with rsvg-convert")
         p.add_argument("--pdf", action="store_true", help="also write a vector PDF with rsvg-convert")
@@ -94,20 +102,23 @@ def main(argv=None):
     project_opts(p)
     p.add_argument("-o", "--output", help="map .svg (default: <project>_subway.svg); the spec is written next to it")
     p.add_argument("--overwrite-spec", action="store_true", help="replace an existing spec (default: keep your edits)")
+    palette_opt(p)
     render_opts(p)
 
     p = sub.add_parser("draft", help="write a starter spec from the project's rule graph")
     project_opts(p)
     p.add_argument("-o", "--output", help="spec .yaml (default: <project>_subway.yaml)")
+    palette_opt(p)
 
     p = sub.add_parser("render", help="draw a map from a spec")
     p.add_argument("spec", help="YAML spec")
     p.add_argument("-o", "--output", help="map .svg (default: next to the spec)")
+    palette_opt(p)
     render_opts(p)
 
     a = ap.parse_args(argv)
     if a.cmd == "render":
-        render_file(a.spec, a.output, a.png, a.pdf, a.strict)
+        render_file(a.spec, a.output, a.png, a.pdf, a.strict, a.palette)
         return
 
     if a.compare and not a.scan:
@@ -130,12 +141,12 @@ def main(argv=None):
         Path(a.save_rulegraph).write_text(dot, encoding="utf-8")
         print(f"wrote {a.save_rulegraph}")
     if a.cmd == "draft":
-        write_draft(dot, name, a.output or f"{name}_subway.yaml")
+        write_draft(dot, name, a.output or f"{name}_subway.yaml", a.palette)
         return
     svg_out = Path(a.output or f"{name}_subway.svg")
     spec_out = svg_out.with_suffix(".yaml")
     if spec_out.exists() and not a.overwrite_spec:
         print(f"keeping existing spec {spec_out} (use --overwrite-spec to redraft it)")
     else:
-        write_draft(dot, name, spec_out)
-    render_file(spec_out, svg_out, a.png, a.pdf, a.strict)
+        write_draft(dot, name, spec_out, a.palette)
+    render_file(spec_out, svg_out, a.png, a.pdf, a.strict, a.palette)

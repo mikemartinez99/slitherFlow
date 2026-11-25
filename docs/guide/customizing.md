@@ -53,7 +53,43 @@ A station with `optional: true` is drawn with a dashed circle. A line with `opti
 
 ## Change colours
 
-Lines use the colour-blind-friendly [Okabe-Ito palette](../reference/spec.md#default-colours) by default. Set `color` to override it:
+Lines use the colour-blind-friendly [Okabe-Ito palette](../reference/spec.md#colour-palettes) by default. To recolour every line at once, pick another palette (or list your own colours):
+
+```yaml
+palette: tol-bright      # okabe-ito, tol-bright, tol-vibrant, tol-muted, ibm or tab10
+```
+
+To try one without editing the spec, use `slitherflow render my-pipeline_subway.yaml --palette tol-vibrant`.
+
+Here's the CUT&RUN draft in each palette:
+
+=== "okabe-ito"
+
+    ![CUT&RUN draft drawn with the okabe-ito palette](../examples/palettes/okabe-ito.png)
+
+=== "tol-bright"
+
+    ![CUT&RUN draft drawn with the tol-bright palette](../examples/palettes/tol-bright.png)
+
+=== "tol-vibrant"
+
+    ![CUT&RUN draft drawn with the tol-vibrant palette](../examples/palettes/tol-vibrant.png)
+
+=== "tol-muted"
+
+    ![CUT&RUN draft drawn with the tol-muted palette](../examples/palettes/tol-muted.png)
+
+=== "ibm"
+
+    ![CUT&RUN draft drawn with the ibm palette](../examples/palettes/ibm.png)
+
+=== "tab10"
+
+    ![CUT&RUN draft drawn with the tab10 palette](../examples/palettes/tab10.png)
+
+`okabe-ito`, the `tol-` palettes and `ibm` are colour-blind safe; `tab10` isn't. See [Colour palettes](../reference/spec.md#colour-palettes) for every colour in each one.
+
+Set `color` on a line to give just that line its own colour:
 
 ```yaml
   genome:

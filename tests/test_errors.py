@@ -53,6 +53,17 @@ def test_bad_spec_stops_with_a_clear_message(change, message):
         slitherflow.render(broken(change))
 
 
+@pytest.mark.parametrize("palette, message", [
+    ("rainbow", "palette 'rainbow' is not one of: okabe-ito"),
+    ([], "non-empty list of colours"),
+    (["#000000", 3], "non-empty list of colours"),
+    ({"a": "#000000"}, "non-empty list of colours"),
+])
+def test_bad_palette_stops_with_a_clear_message(palette, message):
+    with pytest.raises(SystemExit, match=message):
+        slitherflow.render(dict(copy.deepcopy(BASE), palette=palette))
+
+
 def test_empty_rulegraph():
     with pytest.raises(SystemExit, match="no rules found"):
         slitherflow.spec_from_rulegraph("this is not a rule graph")

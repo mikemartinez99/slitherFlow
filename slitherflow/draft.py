@@ -2,6 +2,8 @@
 import re
 import sys
 
+from .style import DEFAULT_PALETTE, PALETTES
+
 
 def pretty(rule):
     words = rule.replace("-", "_").split("_")
@@ -63,7 +65,7 @@ def drop_loops(succ, pred):
     return dropped
 
 
-def spec_from_rulegraph(dot_text, title="My pipeline"):
+def spec_from_rulegraph(dot_text, title="My pipeline", palette=DEFAULT_PALETTE):
     """A starter spec (YAML text) from a rule graph in `snakemake --rulegraph` (DOT) form.
 
     Lines and stations are marked optional only when the graph says so: `--scan` adds `optional = true` to the
@@ -326,6 +328,8 @@ def spec_from_rulegraph(dot_text, title="My pipeline"):
            "",
            f'title: {q(title)}',
            'subtitle: "v1.0  ·  Snakemake"',
+           f"palette: {palette}" + " " * max(1, 22 - len(palette))
+           + f"# line colours: {', '.join(PALETTES)}, or a list of colours",
            'input: {label: "Input", sublabel: "", file: "IN"}   # file: text on the input icon, e.g. "FASTQ", "CSV", "NC"',
            "",
            "trunk:                      # steps every run goes through",
